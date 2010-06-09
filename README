@@ -1,0 +1,19 @@
+This plugin will let you have a Blofeld server as a source in Rhythmbox. Unless
+you have a Blofeld server, or know someone who does and has given you access,
+then this won't do anything for you. You can find out about Blofeld by visiting
+http://github.com/daveisadork/Blofeld 
+
+To use this plugin, you need to stick these files in a folder inside of the
+Rhythmbox plugins folder. You might accomplish such a thing like this:
+
+  cd ~/.local/share/rhythmbox/plugins/
+  git clone git://github.com/daveisadork/blofeld-rhythmbox.git
+
+Then you should have ~/.local/share/rhythmbox/plugins/blofeld-rhythmbox which
+should have two files in it. You need to edit __init__.py and look for the
+configuration section at the very top. Change the PATH_TO_BLOFELD, USERNAME
+and PASSWORD variables to something that makes sense.
+
+Now you can launch Rhythmbox and enable the plugin (hopefully) and you should
+have Blofeld listed as a source. Now you can listen to music, yay! While you're
+doing that, write a configuration UI and then send me a pull request.
