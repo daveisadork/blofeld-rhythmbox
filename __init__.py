@@ -2,7 +2,10 @@ import rhythmdb, rb
 import gobject, gtk
 import gnome, gconf
 import urlparse
-import cjson as json
+try:
+    import cjson as json
+except:
+    import json
 import datetime
 
 #########################
