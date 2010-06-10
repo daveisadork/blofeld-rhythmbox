@@ -91,7 +91,7 @@ class BlofeldSource(rb.BrowserSource):
 
 
     def parse_song_list(self, song_list):
-        self.songs = json.decode(song_list)
+        self.songs = json.decode(song_list)['songs']
         self.__load_total_size = len(self.songs)
         self.__load_current_size = len(self.songs)
         self.trackurl = self.url + '/get_song?songid='
