@@ -2,33 +2,31 @@ import rhythmdb, rb
 import gobject, gtk
 import gnome, gconf
 import urlparse
-try:
-    import cjson as json
-except:
-    import json
+import anyjson
 import datetime
 
-#########################
-# Configuration Section #
-#########################
-
-# Specify the user name and password if you need them
-USERNAME = 'user'
-PASSWORD = 'pass'
-
-# Specify the URL you use to access Blofeld, just like you'd type it in your
-# web browser to access the web interface.
-PATH_TO_BLOFELD = "http://localhost:8083"
-
-# Don't change anything past this point!
-
-
+# the gconf configuration
+gconf_keys = {
+    'address': "/apps/rhythmbox/plugins/blofeld/address",
+    'username': "/apps/rhythmbox/plugins/blofeld/username",
+    'password': "/apps/rhythmbox/plugins/blofeld/password",
+}
 
 
 class Blofeld(rb.Plugin):
 
     def __init__(self):
         rb.Plugin.__init__(self)
+        self.config = gconf.client_get_default()
+
+        if self.config.get(gconf_keys['address']) is None:
+            # key not yet found represented by "None"
+            self._set_defaults()
+
+    def _set_defaults(self):
+        self.config.set_string(gconf_keys['address'], 'http://localhost:8083')
+        self.config.set_string(gconf_keys['username'], '')
+        self.config.set_string(gconf_keys['password'], '')
 
     def activate(self, shell):
         self.db = shell.get_property("db")
@@ -61,6 +59,73 @@ class Blofeld(rb.Plugin):
 
     def playing_entry_changed (self, sp, entry):
         self.source.playing_entry_changed (entry)
+    
+    def create_configure_dialog(self, dialog=None):
+        if dialog is None:
+
+            def store_config(dialog,address,username,password):
+                address = address_entry.get_text()
+                self.config.set_string(gconf_keys['address'],address)
+                username = username_entry.get_text()
+                self.config.set_string(gconf_keys['username'],username)
+                password = password_entry.get_text()
+                self.config.set_string(gconf_keys['password'],password)
+                dialog.hide()
+
+            dialog = gtk.Dialog(title='Blofeld Configuration',
+                            parent=None,flags=0,buttons=None)
+            dialog.set_default_size(400,350)
+
+            table = gtk.Table(rows=3, columns=2, homogeneous=True)
+            dialog.vbox.pack_start(table, False, False, 0)
+
+            label = gtk.Label("Address :")
+            label.set_alignment(0,0.5)
+            table.attach(label, 0, 1, 0, 1)
+            address_entry = gtk.Entry()
+#            address_entry.set_max_length(16)
+            if self.config.get_string(gconf_keys['address']) != None:
+                address_entry.set_text(self.config.get_string(gconf_keys['address']))
+            else:
+                address_entry.set_text('')
+            table.attach(address_entry, 1, 2, 0, 1,
+                         xoptions=gtk.FILL|gtk.EXPAND,yoptions=gtk.FILL|gtk.EXPAND,xpadding=5,ypadding=5)
+
+            label = gtk.Label("Username :")
+            label.set_alignment(0,0.5)
+            table.attach(label, 0, 1, 1, 2)
+            username_entry = gtk.Entry()
+#            address_entry.set_max_length(16)
+            if self.config.get_string(gconf_keys['username']) != None:
+                username_entry.set_text(self.config.get_string(gconf_keys['username']))
+            else:
+                username_entry.set_text('')
+            table.attach(username_entry, 1, 2, 1, 2,
+                         xoptions=gtk.FILL|gtk.EXPAND,yoptions=gtk.FILL|gtk.EXPAND,xpadding=5,ypadding=5)
+                         
+            label = gtk.Label("Password :")
+            label.set_alignment(0,0.5)
+            table.attach(label, 0, 1, 2, 3)
+            password_entry = gtk.Entry()
+#            address_entry.set_max_length(16)
+            if self.config.get_string(gconf_keys['password']) != None:
+                password_entry.set_text(self.config.get_string(gconf_keys['password']))
+            else:
+                password_entry.set_text('')
+            table.attach(password_entry, 1, 2, 2, 3,
+                         xoptions=gtk.FILL|gtk.EXPAND,yoptions=gtk.FILL|gtk.EXPAND,xpadding=5,ypadding=5)
+
+            button = gtk.Button(stock=gtk.STOCK_CANCEL)
+            dialog.action_area.pack_start(button, True, True, 5)
+            button.connect("clicked", lambda w: dialog.hide())
+            button = gtk.Button(stock=gtk.STOCK_OK)
+            button.connect("clicked", lambda w: store_config(dialog,address_entry,username_entry,password_entry))
+            dialog.action_area.pack_start(button, True, True, 5)
+            dialog.show_all()
+
+
+        dialog.present()
+        return dialog
 
 
 class BlofeldSource(rb.BrowserSource):
@@ -72,10 +137,11 @@ class BlofeldSource(rb.BrowserSource):
         rb.BrowserSource.__init__(self, name=_("Blofeld"))
         self.__activated = False
         self.__updating = False
+        self.config = gconf.client_get_default()
         self.__load_total_size = 0
         (scheme, netloc,  path, query,
-                                fragment) = urlparse.urlsplit(PATH_TO_BLOFELD)
-        netloc = "%s:%s@%s" % (USERNAME, PASSWORD, netloc)
+                                fragment) = urlparse.urlsplit(self.config.get_string(gconf_keys['address']))
+        netloc = "%s:%s@%s" % (self.config.get_string(gconf_keys['username']), self.config.get_string(gconf_keys['password']), netloc)
         self.url = urlparse.urlunsplit((scheme, netloc, path, query, fragment))
 
     def do_impl_activate(self):
@@ -91,7 +157,7 @@ class BlofeldSource(rb.BrowserSource):
 
 
     def parse_song_list(self, song_list):
-        self.songs = json.decode(song_list)['songs']
+        self.songs = anyjson.deserialize(song_list)['songs']
         self.__load_total_size = len(self.songs)
         self.__load_current_size = len(self.songs)
         self.trackurl = self.url + '/get_song?songid='
@@ -141,7 +207,7 @@ class BlofeldSource(rb.BrowserSource):
     def playing_entry_changed (self, entry):
         if not self.__db or not entry:
             return
-        if entry.get_entry_type() != self.__db.entry_type_get_by_name("BlofeldEntryType"):
+        if entry.get_entry_type() != self.__entry_type:
             return
         gobject.idle_add (self.emit_cover_art_uri, entry)
 
@@ -161,16 +227,18 @@ class BlofeldSource(rb.BrowserSource):
             qm = self.get_property("query-model")
             return (qm.compute_status_normal("%d song", "%d songs"), None, None)
 
-	def do_set_property(self, property, value):
-		if property.name == 'plugin':
-			self.__plugin = value
-		else:
-			raise AttributeError, 'unknown property %s' % property.name
+    def do_set_property(self, property, value):
+        if property.name == 'plugin':
+            self.__plugin = value
+        else:
+            raise AttributeError, 'unknown property %s' % property.name
 
-	def do_impl_get_browser_key (self):
-		return "/apps/rhythmbox/plugins/blofeld-rhythmbox/show_browser"
+    def do_impl_get_browser_key (self):
+        return "/apps/rhythmbox/plugins/blofeld/show_browser"
 
-	def do_impl_get_paned_key (self):
-		return "/apps/rhythmbox/plugins/blofeld-rhythmbox/paned_position"
+    def do_impl_get_paned_key (self):
+        return "/apps/rhythmbox/plugins/blofeld/paned_position"
+
+
 
 gobject.type_register(BlofeldSource)

@@ -10,10 +10,9 @@ Rhythmbox plugins folder. You might accomplish such a thing like this:
   git clone git://github.com/daveisadork/blofeld-rhythmbox.git
 
 Then you should have ~/.local/share/rhythmbox/plugins/blofeld-rhythmbox which
-should have two files in it. You need to edit __init__.py and look for the
-configuration section at the very top. Change the PATH_TO_BLOFELD, USERNAME
-and PASSWORD variables to something that makes sense.
+should have two files in it. 
 
-Now you can launch Rhythmbox and enable the plugin (hopefully) and you should
-have Blofeld listed as a source. Now you can listen to music, yay! While you're
-doing that, write a configuration UI and then send me a pull request.
+Now you can launch Rhythmbox and enable the plugin (hopefully). Then, hit the
+configure button and adjust the address, username and password to values that
+make sense. You should have Blofeld listed as a source. Now you can listen to
+music, yay!  
