@@ -1,0 +1,13 @@
+Source: rhythmbox-plugin-blofeld
+Section: sound
+Priority: extra
+Maintainer: Dave Hayes <dwhayes@gmail.com>
+Build-Depends: debhelper (>= 7.0.50~)
+Standards-Version: 3.8.4
+Homepage: http://github.com/daveisadork/blofeld-rhythmbox
+
+Package: rhythmbox-plugin-blofeld
+Architecture: all
+Depends: ${misc:Depends}, rhythmbox, python-anyjson
+Description: Blofeld plugin for Rhythmbox
+ Allows you to add a Blofeld server as a source in Rhythmbox.
