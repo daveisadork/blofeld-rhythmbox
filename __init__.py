@@ -138,11 +138,7 @@ class BlofeldSource(rb.BrowserSource):
         self.__activated = False
         self.__updating = False
         self.config = gconf.client_get_default()
-        self.__load_total_size = 0
-        (scheme, netloc,  path, query,
-                                fragment) = urlparse.urlsplit(self.config.get_string(gconf_keys['address']))
-        netloc = "%s:%s@%s" % (self.config.get_string(gconf_keys['username']), self.config.get_string(gconf_keys['password']), netloc)
-        self.url = urlparse.urlunsplit((scheme, netloc, path, query, fragment))
+
 
     def do_impl_activate(self):
         if not self.__activated:
@@ -150,7 +146,20 @@ class BlofeldSource(rb.BrowserSource):
             self.__db = shell.get_property('db')
             self.__entry_type = self.get_property('entry-type')
             self.__activated = True
+            self.__loaded = False
+            self.__address = self.config.get_string(gconf_keys['address'])
         rb.BrowserSource.do_impl_activate (self)
+        if (not self.__updating and not self.__loaded) or self.__address != self.config.get_string(gconf_keys['address']):
+            self.__db.entry_delete_by_type(self.__entry_type)
+            self.__load_total_size = 0
+            (scheme, netloc,  path, query,
+                                fragment) = urlparse.urlsplit(self.config.get_string(gconf_keys['address']))
+            netloc = "%s:%s@%s" % (self.config.get_string(gconf_keys['username']), self.config.get_string(gconf_keys['password']), netloc)
+            self.url = urlparse.urlunsplit((scheme, netloc, path, query, fragment))
+            self.download_song_list()
+
+
+    def download_song_list(self):
         loader = rb.Loader()
         self.__updating = True
         loader.get_url(self.url + '/list_songs?list_all=true', self.parse_song_list)
@@ -161,7 +170,6 @@ class BlofeldSource(rb.BrowserSource):
         self.__load_total_size = len(self.songs)
         self.__load_current_size = len(self.songs)
         self.trackurl = self.url + '/get_song?songid='
-        self.finished = False
         gobject.idle_add(self.add_song)
 
     def add_song(self):
@@ -201,6 +209,7 @@ class BlofeldSource(rb.BrowserSource):
         gtk.gdk.threads_leave()
         if not self.songs:
             self.__updating = False
+            self.__loaded = True
             return False
         return True
 
