@@ -7,10 +7,10 @@ To use this plugin, you need to stick these files in a folder inside of the
 Rhythmbox plugins folder. You might accomplish such a thing like this:
 
   cd ~/.local/share/rhythmbox/plugins/
-  git clone git://github.com/daveisadork/blofeld-rhythmbox.git
+  git clone git://github.com/daveisadork/blofeld-rhythmbox.git blofeld
 
-Then you should have ~/.local/share/rhythmbox/plugins/blofeld-rhythmbox which
-should have two files in it. 
+Then you should have a directory at ~/.local/share/rhythmbox/plugins/blofeld
+which has a few files in it. 
 
 Now you can launch Rhythmbox and enable the plugin (hopefully). Then, hit the
 configure button and adjust the address, username and password to values that

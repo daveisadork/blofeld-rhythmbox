@@ -1,6 +1,6 @@
 [RB Plugin]
 Loader=python
-Module=blofeld-rhythmbox
+Module=blofeld
 IAge=1
 Name=Blofeld
 Description=Adds a Blofeld server as a library source

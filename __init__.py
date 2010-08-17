@@ -15,7 +15,9 @@ gconf_keys = {
 
 class Blofeld(rb.Plugin):
 
+
     def __init__(self):
+        self.source = None
         rb.Plugin.__init__(self)
         self.config = gconf.client_get_default()
 
@@ -58,7 +60,8 @@ class Blofeld(rb.Plugin):
         self.source = None
 
     def playing_entry_changed (self, sp, entry):
-        self.source.playing_entry_changed (entry)
+        if self.source:
+            self.source.playing_entry_changed (entry)
     
     def create_configure_dialog(self, dialog=None):
         if dialog is None:
@@ -135,6 +138,7 @@ class BlofeldSource(rb.BrowserSource):
 
     def __init__(self):
         rb.BrowserSource.__init__(self, name=_("Blofeld"))
+        self.__db = None
         self.__activated = False
         self.__updating = False
         self.config = gconf.client_get_default()
@@ -215,10 +219,11 @@ class BlofeldSource(rb.BrowserSource):
 
     def playing_entry_changed (self, entry):
         if not self.__db or not entry:
-            return
+            return False
         if entry.get_entry_type() != self.__entry_type:
-            return
+            return False
         gobject.idle_add (self.emit_cover_art_uri, entry)
+        return True
 
     def emit_cover_art_uri (self, entry):
         url = self.__db.entry_get(entry, rhythmdb.PROP_LOCATION).replace('song?', 'cover?size=500&')
