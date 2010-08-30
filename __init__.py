@@ -13,6 +13,14 @@ gconf_keys = {
 }
 
 
+class BlofeldEntryType(rhythmdb.EntryType):
+    def __init__(self):
+        rhythmdb.EntryType.__init__(self, name='blofeld')
+
+    def can_sync_metadata(self, entry):
+        return True
+
+
 class Blofeld(rb.Plugin):
 
 
@@ -32,7 +40,8 @@ class Blofeld(rb.Plugin):
 
     def activate(self, shell):
         self.db = shell.get_property("db")
-        self.entry_type = self.db.entry_register_type("BlofeldEntryType")
+        self.entry_type = BlofeldEntryType()
+        self.db.register_entry_type(self.entry_type)
         model = self.db.query_model_new_empty()
         group = rb.rb_source_group_get_by_name ("library")
         if not group:
@@ -51,7 +60,7 @@ class Blofeld(rb.Plugin):
                         icon=icon,
                         plugin=self)
         shell.register_entry_type_for_source(self.source, self.entry_type)
-        shell.append_source(self.source, None) # Add the source to the lis
+        shell.append_source(self.source, None) # Add the source to the list
         self.pec_id = shell.get_player().connect('playing-song-changed', self.playing_entry_changed)
 
     def deactivate(self, shell):
@@ -151,6 +160,7 @@ class BlofeldSource(rb.BrowserSource):
             self.__entry_type = self.get_property('entry-type')
             self.__activated = True
             self.__loaded = False
+            self.__error = False
             self.__address = self.config.get_string(gconf_keys['address'])
         rb.BrowserSource.do_impl_activate (self)
         if (not self.__updating and not self.__loaded) or self.__address != self.config.get_string(gconf_keys['address']):
@@ -165,16 +175,22 @@ class BlofeldSource(rb.BrowserSource):
 
     def download_song_list(self):
         loader = rb.Loader()
+        self.__error = False
         self.__updating = True
         loader.get_url(self.url + '/list_songs?list_all=true', self.parse_song_list)
 
 
     def parse_song_list(self, song_list):
-        self.songs = anyjson.deserialize(song_list)['songs']
-        self.__load_total_size = len(self.songs)
-        self.__load_current_size = len(self.songs)
-        self.trackurl = self.url + '/get_song?songid='
-        gobject.idle_add(self.add_song)
+        if not song_list:
+            self.__updating = False
+            self.__loaded = False
+            self.__error = True
+        else:
+            self.songs = anyjson.deserialize(song_list)['songs']
+            self.__load_total_size = len(self.songs)
+            self.__load_current_size = len(self.songs)
+            self.trackurl = self.url + '/get_song?songid='
+            gobject.idle_add(self.add_song)
 
     def add_song(self):
         gtk.gdk.threads_enter()
@@ -231,7 +247,9 @@ class BlofeldSource(rb.BrowserSource):
         return False
 
     def do_impl_get_status(self):
-        if self.__updating:
+        if self.__error:
+            return ("Error loading Blofeld library", None, None)
+        elif self.__updating:
             if self.__load_total_size > 0:
                 progress = min (float(self.__load_total_size - self.__load_current_size) / self.__load_total_size, 1.0)
             else:
