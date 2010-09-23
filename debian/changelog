@@ -1,3 +1,9 @@
+rhythmbox-plugin-blofeld (0+git15-0dwhayes0) maverick; urgency=low
+
+  * Fix for Rhythmbox in Maverick
+
+ -- Dave Hayes <dwhayes@gmail.com>  Mon, 30 Aug 2010 11:45:24 -0500
+
 rhythmbox-plugin-blofeld (0+git14-0dwhayes0) maverick; urgency=low
 
   * Initial Release.
